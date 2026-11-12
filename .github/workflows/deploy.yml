@@ -38,5 +38,5 @@ jobs:
             -p 127.0.0.1:8012:8000 \
             "$IMAGE:$TAG"
 
-          curl -fsS --retry 10 --retry-connrefused \
-            --retry-delay 1 http://localhost:8012/version
+          curl -fsS --retry 12 --retry-all-errors \
+            --retry-delay 2 http://localhost:8012/version
