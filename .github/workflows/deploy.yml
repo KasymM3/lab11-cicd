@@ -1,0 +1,42 @@
+
+name: deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Image version to deploy"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, linux, x64, lab11-deploy]
+    environment: production
+
+    steps:
+      - name: Deploy on laptop
+        shell: bash
+        env:
+          TAG: ${{ inputs.tag }}
+          IMAGE: ghcr.io/kasymm3/lab11-cicd
+        run: |
+          set -euo pipefail
+          [[ "$TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 1
+
+          docker pull "$IMAGE:$TAG"
+          docker rm -f lab11-prod 2>/dev/null || true
+          docker run -d --name lab11-prod \
+            -p 127.0.0.1:8012:8000 \
+            "$IMAGE:$TAG"
+
+          curl -fsS --retry 10 --retry-connrefused \
+            --retry-delay 1 http://localhost:8012/version
